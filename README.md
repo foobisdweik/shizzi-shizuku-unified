@@ -34,7 +34,9 @@ module it needs. See [compatibility](docs/android-compatibility.md).
 
 ## Install
 
-Build this standalone version with the instructions below. Install `app/build/outputs/apk/debug/app-debug.apk` through `adb install -r`.
+Download the [v0.6.0 APK](https://github.com/foobisdweik/shizzi-shizuku-unified/releases/download/v0.6.0/shizzi-unified-v0.6.0-debug.apk) from the [release page](https://github.com/foobisdweik/shizzi-shizuku-unified/releases/tag/v0.6.0). The APK uses the existing local debug signing key. A SHA-256 checksum file is included with the release.
+
+To build it yourself, follow the instructions below. Install `app/build/outputs/apk/debug/app-debug.apk` through `adb install -r`.
 
 Follow [standalone setup](docs/standalone-shizzi.md) to pair or start the included helper. The Shizuku app is no longer required.
 
