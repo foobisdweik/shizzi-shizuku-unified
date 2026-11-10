@@ -2,7 +2,9 @@ package dev.shizzi
 
 import android.content.ClipData
 import android.content.ClipboardManager
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Bundle
 import android.provider.Settings
 import androidx.activity.ComponentActivity
@@ -48,6 +50,19 @@ class HelperSetupActivity : ComponentActivity() {
                         Text("Shizzi has its own helper. You do not need the Shizuku app.")
                         Text("For initial setup, connect the phone to Wi-Fi. Open Developer options, enable Wireless debugging, then choose Pair device with pairing code.")
                         Text("Use split screen to keep the pairing dialog open beside Shizzi. Enter its pairing port and six-digit code below. These differ from the connection port.")
+                        Text("Easiest: start the pairing assistant. Shizzi finds the pairing dialog by itself, and you type the code into its notification.")
+                        Button(enabled = !busy, onClick = {
+                            if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                                requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 0)
+                                HelperRuntime.status.value = "Allow notifications, then start the pairing assistant again"
+                                return@Button
+                            }
+                            PairingService.start(this@HelperSetupActivity)
+                            HelperRuntime.status.value = "The pairing assistant is waiting for the pairing dialog"
+                            runCatching { startActivity(PairingService.developerOptionsIntent()) }
+                                .onFailure { HelperRuntime.status.value = "Open Developer options in Android Settings" }
+                        }) { Text("Pair with notification") }
+                        Text("Or pair by hand:")
                         Button(onClick = {
                             runCatching { startActivity(Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS)) }
                                 .onFailure { HelperRuntime.status.value = "Open Developer options in Android Settings" }

@@ -18,7 +18,17 @@ Initial setup still requires Android Settings or an authorized computer. App pin
 
 The older build did not save ownership records. Therefore, the standalone build refuses to claim tethering that is already active.
 
-### Wireless pairing
+### Wireless pairing with the notification
+
+1. Connect the phone to a real Wi-Fi network.
+2. Select **Pair with notification** in Shizzi's helper setup. Shizzi opens Developer options.
+3. Enable Wireless debugging, then select **Pair device with pairing code**.
+4. Pull down the notification shade. Shizzi's notification says that it found the pairing service.
+5. Select **Enter pairing code** and type the six-digit code from the dialog.
+
+Shizzi finds the pairing port by itself, so you do not type it. After pairing, Shizzi starts the helper. If the code is wrong, the notification asks again.
+
+### Wireless pairing by hand
 
 1. Connect the phone to a real Wi-Fi network.
 2. Open Developer options in Android Settings.
