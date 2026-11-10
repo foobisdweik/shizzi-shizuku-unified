@@ -1,3 +1,15 @@
+# Shizzi–Shizuku Unified
+
+This repository consolidates [Shizzi](https://github.com/carlelieser/shizzi) and the necessary parts of [Shizuku](https://github.com/RikkaApps/Shizuku) into one installable Android app.
+
+Shizzi keeps its tethering interface and includes its own privileged helper (a separate process that uses Android's shell permissions for tethering). The integrated code handles wireless pairing, helper startup, protection, and recovery. A separate Shizuku installation is no longer required, so users can keep one app pinned or locked in Recents.
+
+The helper serves Shizzi exclusively. Initial setup still requires Android's wireless debugging or an authorized computer. Settings → Protection and recovery exposes sixteen controls, including optional changes that affect the whole phone.
+
+See the [v0.6.0 release notes](docs/releases/v0.6.0.md) for every control and its default. See [standalone setup](docs/standalone-shizzi.md) for pairing and startup instructions.
+
+---
+
 <p align="center">
   <img src="docs/assets/icon.png" width="96" alt="">
 </p>
