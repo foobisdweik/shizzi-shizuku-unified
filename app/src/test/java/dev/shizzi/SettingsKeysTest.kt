@@ -7,6 +7,13 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class SettingsKeysTest {
+    @Test
+    fun `aggressive keep alive defaults on but preserves an explicit opt out`() {
+        assertEquals(true, toSettings(preferencesOf()).aggressiveKeepAlive)
+        assertEquals(false, toSettings(preferencesOf(KEEP_ALIVE to false)).aggressiveKeepAlive)
+        assertEquals(true, toSettings(preferencesOf(KEEP_ALIVE to true)).aggressiveKeepAlive)
+    }
+
 
     @Test
     fun `reads a stored design language`() {

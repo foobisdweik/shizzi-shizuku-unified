@@ -11,12 +11,11 @@ import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import org.json.JSONObject
-import rikka.shizuku.Shizuku
 
 enum class UiStatus { READY, LOADING, CONNECTED, ERROR }
 
 data class SessionUiState(
-    val shizukuState: ShizukuState = ShizukuState.NotRunning,
+    val helperState: HelperState = HelperState.NotRunning,
     val status: UiStatus = UiStatus.READY,
     val isBusy: Boolean = false,
     val detail: String = "",
@@ -31,7 +30,7 @@ data class SessionUiState(
     val traffic: Traffic = Traffic(),
 ) {
 
-    val canStart: Boolean get() = shizukuState is ShizukuState.Ready && !isBusy
+    val canStart: Boolean get() = helperState is HelperState.Ready && !isBusy
 }
 
 fun SessionUiState.asStopped(): SessionUiState = copy(
@@ -102,66 +101,14 @@ class TetherClient {
 
     private var deathRecipient: IBinder.DeathRecipient? = null
 
-    private val userServiceArgs = Shizuku.UserServiceArgs(
-        ComponentName(BuildConfig.APPLICATION_ID, TetherService::class.java.name),
-    )
-
-        .daemon(true)
-
-        .tag(SERVICE_TAG)
-        .processNameSuffix("probe")
-
-        .debuggable(BuildConfig.DEBUG)
-        .version(TetherService.CONTRACT_VERSION)
-
-    private val connection = object : ServiceConnection {
-        override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
-            val service = binder?.let { ITetherService.Stub.asInterface(it) }
-            when (service) {
-                null -> pendingBind?.completeExceptionally(
-                    IllegalStateException("bindUserService: Shizuku returned a null binder"),
-                )
-
-                else -> {
-                    boundService = service
-                    pendingBind?.complete(service)
-                }
-            }
-        }
-
-        override fun onServiceDisconnected(name: ComponentName?) {
-            boundService = null
-        }
-    }
-
     private suspend fun service(): ITetherService {
-        boundService?.let { existing ->
-            if (existing.asBinder().pingBinder()) return existing
-            boundService = null
-        }
-
-        val deferred = CompletableDeferred<ITetherService>()
-        pendingBind = deferred
-        Shizuku.bindUserService(userServiceArgs, connection)
-
-        val bound = awaitBind(deferred)
+        boundService?.let { if (it.asBinder().pingBinder()) return it }
+        val bound = HelperRuntime.ensureHelper(App.instance)
+        verifyContract(bound)
+        boundService = bound
         observeDeath(bound)
         return bound
     }
-
-    private suspend fun awaitBind(deferred: CompletableDeferred<ITetherService>): ITetherService =
-        try {
-            withTimeout(BIND_TIMEOUT_MS) { deferred.await() }
-        } catch (timeout: TimeoutCancellationException) {
-            pendingBind = null
-            throw IllegalStateException(
-                "bindUserService: Shizuku returned no binder for the privileged " +
-                    "helper within ${BIND_TIMEOUT_MS}ms. The shell process either " +
-                    "never started or exited before handing one back; " +
-                    "`adb logcat -s ShizukuServiceStarter:*` carries the reason.",
-                timeout,
-            )
-        }
 
     private fun observeDeath(bound: ITetherService) {
         deathRecipient = null
@@ -233,7 +180,7 @@ class TetherClient {
             bound.clearLog()
         }.fold(
             onSuccess = { null },
-            onFailure = { failure -> failure.message ?: "could not reach Shizuku" },
+            onFailure = { failure -> failure.message ?: "could not reach the helper" },
         )
     }
 
@@ -242,7 +189,7 @@ class TetherClient {
             .fold(
                 onSuccess = { null },
                 onFailure = { failure ->
-                    "could not reach Shizuku to drop the hotspot: ${failure.message}"
+                    "could not reach the helper to drop the hotspot: ${failure.message}"
                 },
             )
     }
@@ -254,7 +201,7 @@ class TetherClient {
     private fun verifyContract(bound: ITetherService) {
         val remote = bound.contractVersion
         check(remote == TetherService.CONTRACT_VERSION) {
-            "UserService is stale: app is build ${TetherService.CONTRACT_VERSION}, " +
+            "The helper is stale: app is build ${TetherService.CONTRACT_VERSION}, " +
                 "shell process reports $remote — press Stop then Start to reload it"
         }
     }
@@ -269,7 +216,7 @@ class TetherClient {
         }
         deathRecipient = null
 
-        runCatching { Shizuku.unbindUserService(userServiceArgs, connection, shouldTerminate) }
+        // The protection service owns the helper lifetime. Session Stop only releases this client.
         boundService = null
     }
 

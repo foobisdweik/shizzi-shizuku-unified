@@ -14,8 +14,8 @@ object SessionTile {
 
     const val LABEL = "Shizzi"
 
-    fun render(session: SessionUiState, shizuku: ShizukuState, isStopping: Boolean): TileRender {
-        if (shizuku !is ShizukuState.Ready) return unavailable(shizuku)
+    fun render(session: SessionUiState, helper: HelperState, isStopping: Boolean): TileRender {
+        if (helper !is HelperState.Ready) return unavailable(helper)
 
         return when (session.status) {
             UiStatus.LOADING -> TileRender(
@@ -44,17 +44,17 @@ object SessionTile {
         }
     }
 
-    private fun unavailable(shizuku: ShizukuState) = TileRender(
+    private fun unavailable(helper: HelperState) = TileRender(
         state = Tile.STATE_UNAVAILABLE,
-        subtitle = describe(shizuku),
+        subtitle = describe(helper),
         action = TileAction.OPEN_APP,
     )
 
-    private fun describe(shizuku: ShizukuState): String = when (shizuku) {
-        ShizukuState.NotInstalled -> "Shizuku not installed"
-        ShizukuState.NotRunning -> "Shizuku not running"
-        ShizukuState.PermissionRequired -> "Permission required"
-        is ShizukuState.Ready -> ""
+    private fun describe(helper: HelperState): String = when (helper) {
+        HelperState.NotInstalled -> "Helper setup needed"
+        HelperState.NotRunning -> "Helper not running"
+        HelperState.PermissionRequired -> "Permission required"
+        is HelperState.Ready -> ""
     }
 
     private fun describeConnected(session: SessionUiState): String = when (session.clientCount) {

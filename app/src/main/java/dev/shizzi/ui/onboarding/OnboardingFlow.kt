@@ -18,7 +18,7 @@ enum class OnboardingStep { WELCOME, PERMISSIONS, COMPATIBILITY }
 data class OnboardingActions(
     val onRequestAllPermissions: () -> Unit,
     val onGrantPermission: (AppPermission) -> Unit,
-    val onShizukuAction: () -> Unit,
+    val onHelperAction: () -> Unit,
     val onCheckCompatibility: () -> Unit,
     val onDownloadTetheringApex: () -> Unit,
     val onInstallTetheringApex: () -> Unit,
@@ -74,20 +74,20 @@ private fun permissionsStep(
 ): WizardStep {
     val rows = permissionRows(
         sources = PermissionRowSources(
-            shizuku = state.shizuku,
+            helper = state.helper,
             permissions = state.permissions,
         ),
         onGrantPermission = actions.onGrantPermission,
-        onShizukuAction = actions.onShizukuAction,
+        onHelperAction = actions.onHelperAction,
     )
 
     return WizardStep(
         title = "Permissions",
         content = {
             PermissionsStep(
-                shizuku = state.shizuku,
+                helper = state.helper,
                 rows = rows,
-                onShizukuAction = actions.onShizukuAction,
+                onHelperAction = actions.onHelperAction,
             )
         },
         primary = permissionsAction(rows = rows, actions = actions, onNext = onNext),

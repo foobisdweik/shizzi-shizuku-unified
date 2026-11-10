@@ -2,10 +2,10 @@ package dev.shizzi.ui.onboarding
 
 import dev.shizzi.CompatibilityState
 import dev.shizzi.PermissionStatus
-import dev.shizzi.ShizukuState
+import dev.shizzi.HelperState
 
 data class OnboardingState(
-    val shizuku: ShizukuState,
+    val helper: HelperState,
     val compatibility: CompatibilityState,
     val permissions: List<PermissionStatus>,
 )

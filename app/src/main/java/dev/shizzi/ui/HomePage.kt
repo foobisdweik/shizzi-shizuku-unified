@@ -94,7 +94,7 @@ private fun HomeHeader(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(modifier = Modifier.padding(start = ShizziTheme.spacing.sm)) {
-            ShizukuBadge(state.shizukuState)
+            HelperBadge(state.helperState)
         }
 
         Spacer(Modifier.weight(1f))

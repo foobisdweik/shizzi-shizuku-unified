@@ -17,9 +17,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import dev.shizzi.ShizukuState
+import dev.shizzi.HelperState
 import dev.shizzi.ui.PermissionRowState
-import dev.shizzi.ui.ShizukuCard
+import dev.shizzi.ui.HelperCard
 import dev.shizzi.ui.theme.ShizziTheme
 import dev.shizzi.ui.theme.themedSurface
 
@@ -27,15 +27,15 @@ private val MarkSize = 20.dp
 
 @Composable
 fun PermissionsStep(
-    shizuku: ShizukuState,
+    helper: HelperState,
     rows: List<PermissionRowState>,
-    onShizukuAction: () -> Unit,
+    onHelperAction: () -> Unit,
 ) {
     Column(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(ShizziTheme.spacing.md),
     ) {
-        ShizukuCard(state = shizuku, onGrant = onShizukuAction)
+        HelperCard(state = helper, onGrant = onHelperAction)
 
         rows.forEach { row -> PermissionCard(row) }
     }

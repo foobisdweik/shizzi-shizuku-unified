@@ -1,0 +1,5 @@
+This directory and app/src/main/jni adapt the ADB transport and pairing code from RikkaApps/Shizuku.
+Copyright belongs to the original Shizuku contributors.
+Licensed under the Apache License, Version 2.0.
+Modified for standalone Shizzi: packages, bounded recovery, cancellation, logging, and integration.
+The complete license is included in app/src/main/assets/licenses/Shizuku-Apache-2.0.txt.

@@ -50,7 +50,7 @@ class SessionViewModel(application: Application) : AndroidViewModel(application)
     private var sessionCollector: Job? = null
 
     init {
-        refreshShizukuState()
+        refreshHelperState()
         refreshPermissions()
         observeSession()
     }
@@ -60,21 +60,21 @@ class SessionViewModel(application: Application) : AndroidViewModel(application)
 
         sessionCollector = viewModelScope.launch {
             SessionService.liveState.collect { session ->
-                localState.update { local -> session.copy(shizukuState = local.shizukuState) }
+                localState.update { local -> session.copy(helperState = local.helperState) }
             }
         }
     }
 
-    fun refreshShizukuState() {
-        localState.update { it.copy(shizukuState = ShizukuGate.currentState()) }
+    fun refreshHelperState() {
+        localState.update { it.copy(helperState = HelperGate.currentState()) }
     }
 
     fun requestPermission() {
-        ShizukuGate.requestPermission()
+        HelperGate.requestPermission()
     }
 
-    fun actOnShizuku() {
-        ShizukuGate.remedy(localState.value.shizukuState)
+    fun actOnHelper() {
+        HelperGate.remedy(localState.value.helperState)
     }
 
     fun refreshPermissions() {
@@ -94,6 +94,10 @@ class SessionViewModel(application: Application) : AndroidViewModel(application)
 
     fun regenerateAutomationToken() {
         viewModelScope.launch { settingsStore.setAutomationToken(AutomationToken.generate()) }
+    }
+
+    fun setKeepAlive(enabled: Boolean) {
+        viewModelScope.launch { settingsStore.setAggressiveKeepAlive(enabled) }
     }
 
     fun setLogging(enabled: Boolean) {
@@ -163,7 +167,7 @@ class SessionViewModel(application: Application) : AndroidViewModel(application)
                         )
                     },
                 )
-            refreshShizukuState()
+            refreshHelperState()
         }
     }
 

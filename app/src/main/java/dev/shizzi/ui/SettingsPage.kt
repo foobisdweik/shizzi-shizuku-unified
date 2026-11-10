@@ -28,7 +28,7 @@ import androidx.compose.ui.platform.LocalContext
 import dev.shizzi.AppPermission
 import dev.shizzi.UsbTethering
 import dev.shizzi.PermissionStatus
-import dev.shizzi.ShizukuState
+import dev.shizzi.HelperState
 import dev.shizzi.VpnMode
 import dev.shizzi.ui.theme.AccentChoice
 import dev.shizzi.ui.theme.DesignLanguage
@@ -48,13 +48,14 @@ private const val SectionStaggerMillis = 45
 private val SectionRise = 12.dp
 
 data class SettingsState(
-    val shizuku: ShizukuState,
+    val helper: HelperState,
     val permissions: List<PermissionStatus>,
     val theme: ThemeChoice,
     val design: DesignLanguage,
     val accent: AccentChoice,
     val customAccents: List<Int>,
     val isLogging: Boolean,
+    val aggressiveKeepAlive: Boolean,
     val vpnMode: VpnMode,
     val usbTethering: UsbTethering,
     val isRunningDiagnostics: Boolean,
@@ -67,12 +68,13 @@ data class SettingsActions(
     val onSetAccent: (AccentChoice) -> Unit,
     val onAddCustomAccent: (Int) -> Unit,
     val onSetLogging: (Boolean) -> Unit,
+    val onSetKeepAlive: (Boolean) -> Unit,
     val onSetVpnMode: (VpnMode) -> Unit,
     val onSetUsbTethering: (UsbTethering) -> Unit,
     val onOpenLog: () -> Unit,
     val onRunProbes: () -> Unit,
     val onGrantPermission: (AppPermission) -> Unit,
-    val onShizukuAction: () -> Unit,
+    val onHelperAction: () -> Unit,
     val onRestartOnboarding: () -> Unit,
     val automation: AutomationActions,
 )
@@ -151,13 +153,15 @@ private fun settingsSections(
     SettingsSectionSpec("Permissions") {
         PermissionsSection(
             state = PermissionsSectionState(
-                shizuku = state.shizuku,
+                helper = state.helper,
                 permissions = state.permissions,
             ),
             onGrantPermission = actions.onGrantPermission,
-            onShizukuAction = actions.onShizukuAction,
+            onHelperAction = actions.onHelperAction,
         )
     },
+
+    SettingsSectionSpec("Protection and recovery") { ProtectionSettingsPanel() },
 
     SettingsSectionSpec("Advanced") {
         VpnSection(selected = state.vpnMode, onSelect = actions.onSetVpnMode)

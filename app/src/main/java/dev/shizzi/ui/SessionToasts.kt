@@ -2,7 +2,7 @@ package dev.shizzi.ui
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import dev.shizzi.ShizukuState
+import dev.shizzi.HelperState
 import dev.shizzi.SessionUiState
 
 @Composable
@@ -12,7 +12,7 @@ fun SessionToasts(
     onRequestPermission: () -> Unit,
 ) {
     ErrorToast(state.lastError, toasts)
-    ShizukuToast(state.shizukuState, toasts, onRequestPermission)
+    HelperToast(state.helperState, toasts, onRequestPermission)
 }
 
 @Composable
@@ -34,33 +34,33 @@ private fun ErrorToast(lastError: String, toasts: ToastState) {
 }
 
 @Composable
-private fun ShizukuToast(
-    state: ShizukuState,
+private fun HelperToast(
+    state: HelperState,
     toasts: ToastState,
     onRequestPermission: () -> Unit,
 ) {
     LaunchedEffect(state) {
         val message = describe(state)
         if (message.isEmpty()) {
-            toasts.dismiss(ToastKeys.SHIZUKU)
+            toasts.dismiss(ToastKeys.HELPER)
             return@LaunchedEffect
         }
 
         toasts.show(
             Toast(
-                key = ToastKeys.SHIZUKU,
+                key = ToastKeys.HELPER,
                 message = message,
                 duration = ToastDuration.Indefinite,
-                action = ToastAction("Grant", onRequestPermission)
-                    .takeIf { state is ShizukuState.PermissionRequired },
+                action = ToastAction("Setup", onRequestPermission)
+                    .takeIf { state !is HelperState.Ready },
             ),
         )
     }
 }
 
-private fun describe(state: ShizukuState): String = when (state) {
-    is ShizukuState.NotInstalled -> "Shizuku is not installed"
-    is ShizukuState.NotRunning -> "Shizuku is installed but not running"
-    is ShizukuState.PermissionRequired -> "Shizzi needs permission from Shizuku"
-    is ShizukuState.Ready -> ""
+private fun describe(state: HelperState): String = when (state) {
+    is HelperState.NotInstalled -> "Set up Shizzi’s helper"
+    is HelperState.NotRunning -> "Shizzi’s helper is not running. Open helper setup."
+    is HelperState.PermissionRequired -> "Open helper setup to continue"
+    is HelperState.Ready -> ""
 }

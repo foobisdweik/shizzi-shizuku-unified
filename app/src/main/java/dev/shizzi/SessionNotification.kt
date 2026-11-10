@@ -23,6 +23,8 @@ class SessionNotification(private val context: Context) {
             .setContentIntent(openAppIntent())
             .setOngoing(state.status != UiStatus.ERROR)
             .addAction(stopAction())
+            .addAction(Notification.Action.Builder(null, "Stop all protection", PendingIntent.getService(context, 2,
+                Intent(context, SessionService::class.java).setAction(SessionService.ACTION_STOP_ALL), PendingIntent.FLAG_IMMUTABLE)).build())
             .build()
     }
 
@@ -31,7 +33,7 @@ class SessionNotification(private val context: Context) {
             UiStatus.CONNECTED -> connectedTitle(state)
             UiStatus.LOADING -> if (isStopping) "Cleaning up…" else "Getting ready…"
             UiStatus.ERROR -> "Session ended"
-            UiStatus.READY -> "Session ended"
+            UiStatus.READY -> "Shizzi protection"
         }
 
     private fun connectedTitle(state: SessionUiState): String = when {
@@ -46,7 +48,7 @@ class SessionNotification(private val context: Context) {
         state.status == UiStatus.LOADING -> loadingBody(isStopping)
         state.isWaitingForUsb -> "Connect over USB within $USB_GRACE_MINUTES minutes to keep sharing"
         state.status == UiStatus.CONNECTED -> connectedBody(state)
-        else -> "Not sharing"
+        else -> HelperRuntime.status.value
     }
 
     private fun userFacingError(raw: String): String = when {
@@ -70,7 +72,7 @@ class SessionNotification(private val context: Context) {
     }
 
     fun describeLoss(problem: String?): String = when (problem) {
-        null -> "Shizuku stopped, so the session ended. The hotspot was turned off. " +
+        null -> "The helper stopped, so the session ended. The hotspot was turned off. " +
             "Start again when you are ready."
 
         else -> "The session ended but the hotspot may still be on: $problem — " +

@@ -6,7 +6,7 @@ package dev.shizzi
  *
  * Written from the session and watchdog threads, read by the shutdown hook.
  */
-class StartedDownstreams {
+class StartedDownstreams(private val persist: (Set<TetheringType>) -> Unit = {}) {
 
     @Volatile
     var types: Set<TetheringType> = emptySet()
@@ -14,11 +14,16 @@ class StartedDownstreams {
 
     @Synchronized
     fun add(type: TetheringType) {
-        types = types + type
+        val next = types + type
+        persist(next)
+        types = next
     }
 
     @Synchronized
     fun clear() {
+        // A new instance cannot clear ownership that it has not recovered yet.
+        if (types.isEmpty()) return
+        persist(emptySet())
         types = emptySet()
     }
 }

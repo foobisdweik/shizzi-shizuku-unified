@@ -22,6 +22,7 @@ val gomobileBind by tasks.registering(Exec::class) {
     val outputAar = layout.buildDirectory.file("gomobile/datapath.aar")
 
     inputs.dir(goModule).withPropertyName("goSources")
+    inputs.property("nativePageAlignment", 16_384)
     outputs.file(outputAar).withPropertyName("aar")
 
     val goBin = File(System.getProperty("user.home"), "go/bin")
@@ -46,6 +47,7 @@ val gomobileBind by tasks.registering(Exec::class) {
         "bind",
         "-target=android/arm64",
         "-androidapi", "24",
+        "-ldflags=-extldflags=-Wl,-z,max-page-size=16384,-z,common-page-size=16384",
         "-o", outputAar.get().asFile.absolutePath,
         ".",
     )
@@ -54,14 +56,16 @@ val gomobileBind by tasks.registering(Exec::class) {
 android {
     namespace = "dev.shizzi"
     compileSdk = 35
+    ndkVersion = "27.0.12077973"
+    externalNativeBuild { cmake { path = file("src/main/jni/CMakeLists.txt"); version = "3.31.6" } }
 
     defaultConfig {
         applicationId = "dev.shizzi"
 
         minSdk = 30
         targetSdk = 35
-        versionCode = 7
-        versionName = "0.5.0"
+        versionCode = 8
+        versionName = "0.6.0-standalone"
 
         buildConfigField("int", "SERVICE_BUILD_ID", "${sourceFingerprint(projectDir)}")
 
@@ -118,10 +122,14 @@ android {
         compose = true
         aidl = true
         buildConfig = true
+        prefab = true
     }
 
     packaging {
+        // Android extracts the starter beside JNI libraries so the shell can execute it.
+        jniLibs.useLegacyPackaging = true
         resources.excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        resources.excludes += "META-INF/versions/**/OSGI-INF/MANIFEST.MF"
     }
 
     testOptions {
@@ -151,10 +159,11 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
     debugImplementation("androidx.compose.ui:ui-tooling")
 
-    implementation("dev.rikka.shizuku:api:13.1.5")
-    implementation("dev.rikka.shizuku:provider:13.1.5")
 
     implementation("org.lsposed.hiddenapibypass:hiddenapibypass:4.3")
+
+    implementation("io.github.vvb2060.ndk:boringssl:20250114")
+    implementation("org.bouncycastle:bcpkix-jdk18on:1.80")
 
     testImplementation("junit:junit:4.13.2")
 

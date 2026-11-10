@@ -22,7 +22,7 @@ val AppPermission.title: String
 val AppPermission.rationale: String
     get() = when (this) {
         AppPermission.NOTIFICATIONS -> "Required to keep your session running"
-        AppPermission.BATTERY_EXEMPTION -> "Required for external session management"
+        AppPermission.BATTERY_EXEMPTION -> "Lets an active session keep the CPU awake while Android restricts background work"
     }
 
 val AppPermission.manifestName: String?

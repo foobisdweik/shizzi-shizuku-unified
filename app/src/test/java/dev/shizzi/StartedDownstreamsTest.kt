@@ -30,4 +30,27 @@ class StartedDownstreamsTest {
 
         assertTrue(started.types.isEmpty())
     }
+
+    @Test
+    fun `stopping a fresh instance does not erase ownership from a previous helper`() {
+        var durable = setOf(TetheringType.WIFI)
+        val fresh = StartedDownstreams { durable = it }
+
+        fresh.clear()
+
+        assertTrue(fresh.types.isEmpty())
+        assertEquals(setOf(TetheringType.WIFI), durable)
+    }
+
+    @Test
+    fun `a session persists its own start and confirmed clear`() {
+        val writes = mutableListOf<Set<TetheringType>>()
+        val started = StartedDownstreams { writes.add(it) }
+
+        started.add(TetheringType.USB)
+        started.clear()
+        started.clear()
+
+        assertEquals(listOf(setOf(TetheringType.USB), emptySet<TetheringType>()), writes)
+    }
 }

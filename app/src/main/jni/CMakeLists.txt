@@ -1,0 +1,12 @@
+cmake_minimum_required(VERSION 3.31)
+project(shizzi_pairing)
+set(CMAKE_CXX_STANDARD 17)
+find_package(boringssl REQUIRED CONFIG)
+add_library(adb SHARED adb_pairing.cpp)
+target_compile_options(adb PRIVATE -fno-exceptions -fno-rtti -fvisibility=hidden)
+target_link_options(adb PRIVATE -Wl,-z,max-page-size=16384 -Wl,-z,common-page-size=16384)
+target_link_libraries(adb log boringssl::crypto_static)
+
+add_executable(libshizzi_starter.so helper_starter.cpp)
+target_compile_options(libshizzi_starter.so PRIVATE -fno-exceptions -fno-rtti -Wall -Wextra -Werror)
+target_link_options(libshizzi_starter.so PRIVATE -nostdlib++ -Wl,-z,max-page-size=16384 -Wl,-z,common-page-size=16384)
