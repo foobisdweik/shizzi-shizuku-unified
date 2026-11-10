@@ -6,11 +6,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import dev.shizzi.AppPermission
 import dev.shizzi.PermissionStatus
-import dev.shizzi.ShizukuState
+import dev.shizzi.HelperState
 import dev.shizzi.ui.theme.ShizziTheme
 
 data class PermissionsSectionState(
-    val shizuku: ShizukuState,
+    val helper: HelperState,
     val permissions: List<PermissionStatus>,
 )
 
@@ -18,19 +18,19 @@ data class PermissionsSectionState(
 fun PermissionsSection(
     state: PermissionsSectionState,
     onGrantPermission: (AppPermission) -> Unit,
-    onShizukuAction: () -> Unit,
+    onHelperAction: () -> Unit,
 ) {
     Box(modifier = Modifier.padding(vertical = ShizziTheme.spacing.md)) {
-        ShizukuCard(state = state.shizuku, onGrant = onShizukuAction)
+        HelperCard(state = state.helper, onGrant = onHelperAction)
     }
 
     val rows = permissionRows(
         sources = PermissionRowSources(
-            shizuku = state.shizuku,
+            helper = state.helper,
             permissions = state.permissions,
         ),
         onGrantPermission = onGrantPermission,
-        onShizukuAction = onShizukuAction,
+        onHelperAction = onHelperAction,
     )
 
     rows.forEach { row -> PermissionSettingsRow(row) }

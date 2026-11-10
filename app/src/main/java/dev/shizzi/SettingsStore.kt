@@ -24,6 +24,8 @@ data class Settings(
     val accent: AccentChoice = AccentChoice.Default,
     val customAccents: List<Int> = emptyList(),
     val isLogging: Boolean = true,
+    val aggressiveKeepAlive: Boolean = true,
+    val protection: ProtectionSettings = ProtectionSettings(),
 
     val vpnMode: VpnMode = VpnMode.AUTO,
     val usbTethering: UsbTethering = UsbTethering.NEVER,
@@ -72,6 +74,18 @@ class SettingsStore(private val context: Context) {
         }
     }
 
+    suspend fun setAggressiveKeepAlive(enabled: Boolean) {
+        context.dataStore.edit { it[KEEP_ALIVE] = enabled }
+    }
+
+    suspend fun setProtection(settings: ProtectionSettings) {
+        context.dataStore.edit { it.writeProtection(settings) }
+    }
+
+    suspend fun updateProtection(transform: (ProtectionSettings) -> ProtectionSettings) {
+        context.dataStore.edit { it.writeProtection(transform(readProtection(it))) }
+    }
+
     suspend fun setLogging(enabled: Boolean) {
         context.dataStore.edit { it[LOGGING] = enabled }
     }
@@ -111,6 +125,7 @@ internal val THEME = stringPreferencesKey("theme")
 internal val DESIGN = stringPreferencesKey("design")
 internal val ACCENT = stringPreferencesKey("accent")
 internal val CUSTOM_ACCENTS = stringPreferencesKey("custom_accents")
+internal val KEEP_ALIVE = booleanPreferencesKey("aggressive_keep_alive")
 internal val LOGGING = booleanPreferencesKey("logging")
 internal val VPN_MODE = stringPreferencesKey("vpn_mode")
 internal val USB_TETHERING = stringPreferencesKey("usb_tethering")
@@ -126,6 +141,8 @@ internal fun toSettings(preferences: Preferences) = Settings(
     accent = parseAccent(preferences[ACCENT]),
     customAccents = parseAccents(preferences[CUSTOM_ACCENTS]),
     isLogging = preferences[LOGGING] ?: true,
+    aggressiveKeepAlive = preferences[KEEP_ALIVE] ?: true,
+    protection = readProtection(preferences),
     vpnMode = parseVpnMode(preferences[VPN_MODE]),
     usbTethering = parseUsbTethering(preferences[USB_TETHERING]),
     hasCompletedOnboarding = preferences[ONBOARDED] ?: false,

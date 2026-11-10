@@ -44,7 +44,7 @@ fun WelcomeStep() {
         )
 
         Text(
-            text = "Rootless wifi-tethering with Shizuku.",
+            text = "Rootless Wi-Fi tethering with a dedicated helper.",
             style = ShizziTheme.typography.body,
             color = ShizziTheme.colors.onSurfaceMuted,
             textAlign = TextAlign.Center,

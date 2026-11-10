@@ -4,6 +4,8 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.os.Build
 import android.os.ParcelFileDescriptor
+import android.os.Binder
+import android.os.Parcel
 import android.util.Log
 
 class TetherService : ITetherService.Stub {
@@ -15,6 +17,19 @@ class TetherService : ITetherService.Stub {
     private val session: TetherSession by lazy { TetherSession(shellContext) }
     private val compatibility: CompatibilityCheck by lazy { CompatibilityCheck(shellContext) }
     private val apexInstaller: ApexInstaller by lazy { ApexInstaller() }
+    @Volatile internal var startupRecoveryProblem: String? = null
+    private val appUid: Int by lazy {
+        context.packageManager.getApplicationInfo(BuildConfig.APPLICATION_ID, 0).uid
+    }
+
+    override fun onTransact(code: Int, data: Parcel, reply: Parcel?, flags: Int): Boolean {
+        if (!HelperAccess.isAppCaller(Binder.getCallingUid(), appUid)) {
+            throw SecurityException("Only Shizzi can call its helper")
+        }
+        val identity = Binder.clearCallingIdentity()
+        return try { super.onTransact(code, data, reply, flags) }
+        finally { Binder.restoreCallingIdentity(identity) }
+    }
 
     @Suppress("unused")
     constructor() : this(acquireSystemContext())
@@ -24,9 +39,23 @@ class TetherService : ITetherService.Stub {
         liveInstance = this
     }
 
+    internal fun recoverOwnedSession(): String? = OwnedSessionJournal.recoverOwnedDownstreams(shellContext)
+
     override fun getContractVersion(): Int = CONTRACT_VERSION
 
+    override fun protection(request: String): String = PhoneProtection(shellContext).execute(request)
+
+    override fun shutdownHelper() {
+        stop()
+        Thread({
+            Thread.sleep(200)
+            kotlin.system.exitProcess(0)
+        }, "helper-shutdown").start()
+    }
+
     override fun start(logging: Boolean, vpnMode: String?, usbTethering: String?): String {
+        if (startupRecoveryProblem != null) startupRecoveryProblem = recoverOwnedSession()
+        startupRecoveryProblem?.let { return sessionError("recover", IllegalStateException(it)) }
         SessionLog.setEnabled(logging)
         return runCatching {
             session.start(parseVpnMode(vpnMode), parseUsbTethering(usbTethering))
@@ -35,6 +64,10 @@ class TetherService : ITetherService.Stub {
     }
 
     override fun stop(): String {
+        if (startupRecoveryProblem != null) {
+            startupRecoveryProblem = recoverOwnedSession()
+            startupRecoveryProblem?.let { return sessionError("recover", IllegalStateException(it)) }
+        }
         runCatching { runner.teardown() }
             .onFailure { failure -> Log.w(TAG, "stop: probe teardown ${failure.message}") }
 

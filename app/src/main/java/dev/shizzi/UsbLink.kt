@@ -26,8 +26,12 @@ class AndroidUsbLink(
     }
 
     override fun startTethering(): Pair<Boolean, String> {
+        val existing = DownstreamInspector().findTetheredDownstream(listOf(TetheringType.USB))
+        if (existing != DownstreamReading.None) {
+            return false to "USB tethering is already active or its state is unknown"
+        }
+        started.add(TetheringType.USB)
         val outcome = DownstreamControl(context).startTethering(TetheringType.USB)
-        if (outcome.first) started.add(TetheringType.USB)
         return outcome
     }
 }

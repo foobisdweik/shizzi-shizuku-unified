@@ -69,7 +69,7 @@ class SessionTileService : TileService() {
 
     private fun publish(session: SessionUiState) {
         val tile = qsTile ?: return
-        val render = SessionTile.render(session, ShizukuGate.currentState(), isStopping)
+        val render = SessionTile.render(session, HelperGate.currentState(), isStopping)
 
         if (session.status != UiStatus.LOADING) isStopping = false
 
@@ -82,7 +82,7 @@ class SessionTileService : TileService() {
 
     private fun currentRender(): TileRender = SessionTile.render(
         SessionService.liveState.value,
-        ShizukuGate.currentState(),
+        HelperGate.currentState(),
         isStopping,
     )
 

@@ -6,24 +6,24 @@ import org.junit.Test
 
 class SessionTileTest {
 
-    private val ready = ShizukuState.Ready(uid = 2000, isRoot = false)
+    private val ready = HelperState.Ready(uid = 2000, isRoot = false)
 
     @Test
-    fun `is unavailable and opens the app while shizuku is missing`() {
-        val render = SessionTile.render(SessionUiState(), ShizukuState.NotInstalled, false)
+    fun `is unavailable and opens the app while helper is missing`() {
+        val render = SessionTile.render(SessionUiState(), HelperState.NotInstalled, false)
 
         assertEquals(Tile.STATE_UNAVAILABLE, render.state)
-        assertEquals("Shizuku not installed", render.subtitle)
+        assertEquals("Helper setup needed", render.subtitle)
         assertEquals(TileAction.OPEN_APP, render.action)
     }
 
     @Test
-    fun `names the reason shizuku cannot be used`() {
-        val stopped = SessionTile.render(SessionUiState(), ShizukuState.NotRunning, false)
+    fun `names the reason helper cannot be used`() {
+        val stopped = SessionTile.render(SessionUiState(), HelperState.NotRunning, false)
         val ungranted =
-            SessionTile.render(SessionUiState(), ShizukuState.PermissionRequired, false)
+            SessionTile.render(SessionUiState(), HelperState.PermissionRequired, false)
 
-        assertEquals("Shizuku not running", stopped.subtitle)
+        assertEquals("Helper not running", stopped.subtitle)
         assertEquals("Permission required", ungranted.subtitle)
     }
 

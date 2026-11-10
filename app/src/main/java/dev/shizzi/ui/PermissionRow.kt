@@ -2,7 +2,7 @@ package dev.shizzi.ui
 
 import dev.shizzi.AppPermission
 import dev.shizzi.PermissionStatus
-import dev.shizzi.ShizukuState
+import dev.shizzi.HelperState
 import dev.shizzi.rationale
 import dev.shizzi.title
 
@@ -14,18 +14,18 @@ data class PermissionRowState(
 )
 
 data class PermissionRowSources(
-    val shizuku: ShizukuState,
+    val helper: HelperState,
     val permissions: List<PermissionStatus>,
 )
 
 fun permissionRows(
     sources: PermissionRowSources,
     onGrantPermission: (AppPermission) -> Unit,
-    onShizukuAction: () -> Unit,
+    onHelperAction: () -> Unit,
 ): List<PermissionRowState> {
-    val shizuku = shizukuRow(state = sources.shizuku, onAct = onShizukuAction)
+    val helper = shizukuRow(state = sources.helper, onAct = onHelperAction)
 
-    return listOf(shizuku) + sources.permissions.map { status ->
+    return listOf(helper) + sources.permissions.map { status ->
         PermissionRowState(
             title = status.permission.title,
             rationale = status.permission.rationale,
@@ -37,9 +37,9 @@ fun permissionRows(
 
 private const val SHIZUKU_RATIONALE = "Required for core functionality"
 
-private fun shizukuRow(state: ShizukuState, onAct: () -> Unit) = PermissionRowState(
-    title = "Shizuku",
+private fun shizukuRow(state: HelperState, onAct: () -> Unit) = PermissionRowState(
+    title = "Shizzi helper",
     rationale = SHIZUKU_RATIONALE,
-    isGranted = state is ShizukuState.Ready,
+    isGranted = state is HelperState.Ready,
     onAct = onAct,
 )

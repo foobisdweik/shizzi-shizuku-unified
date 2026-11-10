@@ -27,7 +27,7 @@ class TetherSession(private val context: Context) {
     private var events: TetheringEvents? = null
     private val teardown = SessionTeardown(context)
     private val downstream = DownstreamInspector()
-    private val started = StartedDownstreams()
+    private val started = StartedDownstreams(OwnedSessionJournal::writeOwned)
     private val usbLink = AndroidUsbLink(context, started)
 
     @Volatile
@@ -39,6 +39,10 @@ class TetherSession(private val context: Context) {
 
     fun start(mode: VpnMode = VpnMode.AUTO, usb: UsbTethering = UsbTethering.NEVER): String {
         if (isActive) return status()
+        if (started.types.isNotEmpty()) {
+            stop()
+            check(started.types.isEmpty()) { "The previous session's tethering has not stopped" }
+        }
 
         vpnMode = mode
         usbTethering = usb
@@ -77,6 +81,11 @@ class TetherSession(private val context: Context) {
     }
 
     private fun bringUp(): String {
+        usbDownstream.typesToStart().forEach { type ->
+            check(downstream.findTetheredDownstream(listOf(type)) == DownstreamReading.None) {
+                "${type.label} is already active or its state is unknown. Stop it before starting Shizzi."
+            }
+        }
         val group = SessionResources(testNetworkApi, context.connectivityManager())
         resources = group
 
@@ -159,14 +168,20 @@ class TetherSession(private val context: Context) {
     private fun restartDownstream(): Boolean {
         val control = DownstreamControl(context)
         val types = usbDownstream.typesToStart()
-        val usbReading = downstream.findTetheredDownstream(listOf(TetheringType.USB))
-        control.stopTethering(typesToRestart(types, usbReading))
+        types.forEach { type ->
+            check(downstream.findTetheredDownstream(listOf(type)) == DownstreamReading.None) {
+                "${type.label} is already active or its state is unknown. Stop it before starting Shizzi."
+            }
+        }
 
         val (succeeded, failed) = types
-            .associateWith(control::startTethering)
+            .associateWith { type ->
+                // Persist intent first, because Android may start tethering before replying.
+                started.add(type)
+                control.startTethering(type)
+            }
             .entries
             .partition { (_, outcome) -> outcome.first }
-        succeeded.forEach { (type, _) -> started.add(type) }
 
         val failures = failed.map { (type, outcome) -> "${type.label} did not start (${outcome.second})" }
         check(succeeded.isNotEmpty()) { "restartDownstream: ${failures.joinToString("; ")}" }
@@ -219,7 +234,7 @@ class TetherSession(private val context: Context) {
         val summary = if (activeSince == 0L) null else sessionSummary()
 
         val downstreamProblem = teardown.releaseDownstream(started.types)
-        started.clear()
+        if (downstreamProblem == null) started.clear()
 
         teardown.releaseUpstreamSelection(interfaceName)
 

@@ -33,7 +33,7 @@ object ToastKeys {
 
     const val SESSION = "session"
 
-    const val SHIZUKU = "shizuku"
+    const val HELPER = "helper"
 
     const val DIAGNOSTICS = "diagnostics"
 

@@ -3,8 +3,8 @@
 -keep interface dev.shizzi.ITetherService { *; }
 -keep class dev.shizzi.ITetherService$* { *; }
 
--keep class rikka.shizuku.** { *; }
--dontwarn rikka.shizuku.**
+-keep class dev.shizzi.adb.PairingContext { *; }
+-keep class dev.shizzi.adb.AdbPairingClient { *; }
 
 -keep class org.lsposed.hiddenapibypass.** { *; }
 -dontwarn org.lsposed.hiddenapibypass.**
@@ -18,3 +18,8 @@
 
 -keepattributes SourceFile,LineNumberTable
 -renamesourcefileattribute SourceFile
+
+# The shell starts these entrypoints by their class names.
+-keep class dev.shizzi.HelperMain { *; }
+-keep class dev.shizzi.HelperRuntime { *; }
+-keep class dev.shizzi.HelperProcess { *; }

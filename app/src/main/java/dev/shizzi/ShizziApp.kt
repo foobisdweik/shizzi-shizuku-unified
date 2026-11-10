@@ -77,14 +77,14 @@ private fun OnboardingRoute(
 ) {
     OnboardingFlow(
         state = OnboardingState(
-            shizuku = state.session.shizukuState,
+            helper = state.session.helperState,
             compatibility = onboarding.compatibility,
             permissions = state.permissions,
         ),
         actions = OnboardingActions(
             onRequestAllPermissions = actions.onRequestAllPermissions,
             onGrantPermission = actions.onGrantPermission,
-            onShizukuAction = actions.onShizukuAction,
+            onHelperAction = actions.onHelperAction,
             onCheckCompatibility = onboarding.onCheckCompatibility,
             onDownloadTetheringApex = onboarding.onDownloadTetheringApex,
             onInstallTetheringApex = onboarding.onInstallTetheringApex,

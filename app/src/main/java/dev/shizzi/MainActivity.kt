@@ -5,6 +5,8 @@ import android.os.Bundle
 import android.service.quicksettings.TileService
 import android.view.View
 import android.view.ViewTreeObserver
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -17,24 +19,10 @@ import androidx.core.view.WindowCompat
 import dev.shizzi.ui.Screen
 import dev.shizzi.ui.theme.Appearance
 import dev.shizzi.ui.theme.ShizziTheme
-import rikka.shizuku.Shizuku
 
 class MainActivity : ComponentActivity() {
 
     private val viewModel: SessionViewModel by viewModels()
-
-    private val permissionListener =
-        Shizuku.OnRequestPermissionResultListener { _, granted ->
-            viewModel.refreshShizukuState()
-            viewModel.refreshPermissions()
-            onShizukuResult(isGranted = granted == PackageManager.PERMISSION_GRANTED)
-        }
-
-    private val binderReceivedListener =
-        Shizuku.OnBinderReceivedListener { viewModel.refreshShizukuState() }
-
-    private val binderDeadListener =
-        Shizuku.OnBinderDeadListener { viewModel.refreshShizukuState() }
 
     private var requested: AppPermission? = null
 
@@ -50,7 +38,10 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        registerShizukuListeners()
+        lifecycleScope.launch {
+            HelperBridge.service.collect { viewModel.refreshHelperState() }
+        }
+        SessionService.protect(this)
 
         // Long-pressing the quick settings tile lands on settings, like the stock hotspot tile.
         val startScreen = when (intent?.action) {
@@ -72,6 +63,8 @@ class MainActivity : ComponentActivity() {
                 val colors = ShizziTheme.colors
 
                 SideEffect {
+                    if (loaded.protection.keepScreenOn) window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                    else window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
                     WindowCompat.getInsetsController(window, window.decorView)
                         .isAppearanceLightStatusBars = !colors.isDark
                 }
@@ -103,12 +96,13 @@ class MainActivity : ComponentActivity() {
                             onRequestPermission = viewModel::requestPermission,
                             onRequestAllPermissions = ::requestAllPermissions,
                             onGrantPermission = ::grantPermission,
-                            onShizukuAction = viewModel::actOnShizuku,
+                            onHelperAction = viewModel::actOnHelper,
                             onSetTheme = viewModel::setTheme,
                             onSetDesign = viewModel::setDesign,
                             onSetAccent = viewModel::setAccent,
                             onAddCustomAccent = viewModel::addCustomAccent,
                             onSetLogging = viewModel::setLogging,
+                            onSetKeepAlive = viewModel::setKeepAlive,
                             onSetVpnMode = viewModel::setVpnMode,
                             onSetUsbTethering = viewModel::setUsbTethering,
                             onRunProbes = viewModel::runProbes,
@@ -149,7 +143,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun requestNextOutstanding() {
-        if (requestShizuku()) return
+        if (requestHelper()) return
 
         val outstanding = viewModel.permissionState.value.firstOrNull { !it.isGranted }
         val permission = outstanding?.permission
@@ -162,15 +156,14 @@ class MainActivity : ComponentActivity() {
         grantPermission(permission)
     }
 
-    // Only PermissionRequired reports back through the Shizuku listener; the other
-    // states hand off to another app, so the chain ends there.
-    private fun requestShizuku(): Boolean {
-        val state = viewModel.state.value.shizukuState
-        if (state is ShizukuState.Ready) return false
+    // Helper setup ends this permission chain. Android pairing can need Developer options.
+    private fun requestHelper(): Boolean {
+        val state = viewModel.state.value.helperState
+        if (state is HelperState.Ready) return false
 
-        if (state !is ShizukuState.PermissionRequired) stopChain()
+        if (state !is HelperState.PermissionRequired) stopChain()
 
-        viewModel.actOnShizuku()
+        viewModel.actOnHelper()
         return true
     }
 
@@ -199,7 +192,7 @@ class MainActivity : ComponentActivity() {
         if (viewModel.isPermissionGranted(permission)) requestNextOutstanding() else stopChain()
     }
 
-    private fun onShizukuResult(isGranted: Boolean) {
+    private fun onHelperResult(isGranted: Boolean) {
         if (!isChaining) return
 
         if (isGranted) requestNextOutstanding() else stopChain()
@@ -218,22 +211,10 @@ class MainActivity : ComponentActivity() {
         return !shouldShowRequestPermissionRationale(name)
     }
 
-    private fun registerShizukuListeners() {
-        Shizuku.addRequestPermissionResultListener(permissionListener)
-        Shizuku.addBinderReceivedListenerSticky(binderReceivedListener)
-        Shizuku.addBinderDeadListener(binderDeadListener)
-    }
-
     override fun onResume() {
         super.onResume()
-        viewModel.refreshShizukuState()
+        viewModel.refreshHelperState()
         viewModel.refreshPermissions()
     }
 
-    override fun onDestroy() {
-        Shizuku.removeRequestPermissionResultListener(permissionListener)
-        Shizuku.removeBinderReceivedListener(binderReceivedListener)
-        Shizuku.removeBinderDeadListener(binderDeadListener)
-        super.onDestroy()
-    }
 }

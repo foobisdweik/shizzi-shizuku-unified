@@ -84,13 +84,22 @@ class SessionTeardown(private val context: Context) {
     }
 
     fun releaseDownstream(types: Collection<TetheringType>): String? {
+        if (types.isEmpty()) return null
         val control = DownstreamControl(context)
         val inspector = DownstreamInspector()
+        val active = types.filter { type ->
+            when (inspector.findTetheredDownstream(listOf(type))) {
+                DownstreamReading.None -> false
+                DownstreamReading.Unknown -> return "The state of ${type.label} is unknown; cleanup will retry later"
+                is DownstreamReading.Tethered -> true
+            }
+        }
+        if (active.isEmpty()) return null
 
         return releaseDownstreamWith(
-            stop = { attemptStop(control, types) },
+            stop = { attemptStop(control, active) },
             findTethered = {
-                runCatching { inspector.findTetheredDownstream(types).problem }
+                runCatching { inspector.findTetheredDownstream(active).problem }
                     .getOrElse { failure -> "could not verify downstream: ${failure.message}" }
             },
             onRetry = SessionLog::warn,

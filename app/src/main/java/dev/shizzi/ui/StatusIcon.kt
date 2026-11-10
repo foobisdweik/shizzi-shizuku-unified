@@ -21,7 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
-import dev.shizzi.ShizukuState
+import dev.shizzi.HelperState
 import dev.shizzi.UiStatus
 import dev.shizzi.ui.theme.ShizziTheme
 import dev.shizzi.ui.theme.emphasizedSpring
@@ -102,7 +102,7 @@ private fun descriptionFor(status: UiStatus): String = when (status) {
 }
 
 @Composable
-fun ShizukuBadge(state: ShizukuState) {
+fun HelperBadge(state: HelperState) {
     val text = badgeText(state) ?: return
 
     Text(
@@ -118,9 +118,9 @@ fun ShizukuBadge(state: ShizukuState) {
     )
 }
 
-private fun badgeText(state: ShizukuState): String? = when (state) {
-    is ShizukuState.Ready -> null
-    is ShizukuState.NotInstalled -> "NO SHIZUKU"
-    is ShizukuState.NotRunning -> "SHIZUKU OFF"
-    is ShizukuState.PermissionRequired -> "PERMISSION NEEDED"
+private fun badgeText(state: HelperState): String? = when (state) {
+    is HelperState.Ready -> null
+    is HelperState.NotInstalled -> "HELPER OFF"
+    is HelperState.NotRunning -> "HELPER OFF"
+    is HelperState.PermissionRequired -> "PERMISSION NEEDED"
 }

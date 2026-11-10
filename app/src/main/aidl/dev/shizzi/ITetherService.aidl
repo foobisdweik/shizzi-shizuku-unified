@@ -23,4 +23,8 @@ interface ITetherService {
     String rebootDevice();
 
     int getContractVersion();
+
+    String protection(String request);
+
+    void shutdownHelper();
 }

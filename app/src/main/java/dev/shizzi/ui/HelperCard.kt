@@ -17,15 +17,15 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import dev.shizzi.R
-import dev.shizzi.ShizukuGate
-import dev.shizzi.ShizukuState
+import dev.shizzi.HelperGate
+import dev.shizzi.HelperState
 import dev.shizzi.ui.theme.ShizziTheme
 import dev.shizzi.ui.theme.themedSurface
 
 private val BrandIconSize = 40.dp
 
 @Composable
-fun ShizukuCard(state: ShizukuState, onGrant: () -> Unit) {
+fun HelperCard(state: HelperState, onGrant: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -46,9 +46,9 @@ fun ShizukuCard(state: ShizukuState, onGrant: () -> Unit) {
         ) {
             StatusRow(name = "Status", value = statusText(state))
             StatusRow(name = "Service", value = serviceText(state))
-            StatusRow(name = "Version", value = ShizukuGate.installedVersion() ?: "Not installed")
+            StatusRow(name = "Version", value = HelperGate.installedVersion() ?: "Setup needed")
 
-            if (state is ShizukuState.PermissionRequired) {
+            if (state !is HelperState.Ready) {
                 GrantButton(onGrant)
             }
         }
@@ -86,21 +86,21 @@ private fun GrantButton(onGrant: () -> Unit) {
         contentAlignment = Alignment.Center,
     ) {
         Text(
-            text = "GRANT PERMISSION",
+            text = "OPEN HELPER SETUP",
             style = ShizziTheme.typography.label,
             color = ShizziTheme.colors.onPrimary,
         )
     }
 }
 
-private fun statusText(state: ShizukuState): String = when (state) {
-    is ShizukuState.Ready -> "Ready"
-    ShizukuState.NotInstalled -> "Not installed"
-    ShizukuState.NotRunning -> "Not running"
-    ShizukuState.PermissionRequired -> "Permission required"
+private fun statusText(state: HelperState): String = when (state) {
+    is HelperState.Ready -> "Ready"
+    HelperState.NotInstalled -> "Setup needed"
+    HelperState.NotRunning -> "Not running"
+    HelperState.PermissionRequired -> "Permission required"
 }
 
-private fun serviceText(state: ShizukuState): String = when (state) {
-    is ShizukuState.Ready -> ShizukuGate.shortUid(state.uid)
+private fun serviceText(state: HelperState): String = when (state) {
+    is HelperState.Ready -> HelperGate.shortUid(state.uid)
     else -> "—"
 }
