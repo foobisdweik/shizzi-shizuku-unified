@@ -5,6 +5,32 @@ and [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-11-14
+
+Tunes the userspace datapath for speed and makes UDP flows harder to break.
+None of these changes has been measured on a phone yet.
+
+### Changed
+
+- **GRO on the TUN.** The netstack merges consecutive TCP segments from a
+  client before processing them, so fast uploads cost less CPU.
+- **CUBIC congestion control** on the client-facing TCP leg, in place of
+  gVisor's default Reno. The upstream leg still uses Android's kernel TCP.
+- **64 KiB TCP copy buffers**, pooled between connections, in place of
+  32 KiB. A fast transfer makes fewer system calls.
+- **2 MiB UDP buffers** requested on both sides of each UDP flow, in place of
+  about 208 KiB, so QUIC bursts are less likely to drop datagrams.
+- **More connections can be set up at once.** The limit on TCP connections
+  waiting for their upstream dial rises from 512 to 2048.
+
+### Fixed
+
+- A UDP flow no longer closes when only one direction is idle. Traffic in
+  either direction now keeps the flow alive for 60 seconds, so one-way
+  streams survive.
+- A failed UDP write now drops that datagram instead of closing the whole
+  flow. A flow ends only after 16 errors in a row.
+
 ## [0.5.0] - 2026-10-30
 
 Adds USB tethering, so a computer on a USB cable can share the same
