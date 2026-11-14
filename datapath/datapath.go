@@ -52,9 +52,20 @@ func Start(tunFD int, mtu int) (*Session, error) {
 		},
 	})
 
+	tuneTCP(netStack)
+
+	// GRO merges consecutive TCP segments of one flow into a single larger
+	// packet before the TCP layer sees them, so a fast client upload costs
+	// fewer trips through the stack. It validates checksums itself before
+	// merging, so it accepts nothing the stack would otherwise reject.
+	//
+	// Batched reads (RecvMMsg) and GSO are deliberately not requested: fdbased
+	// enables them only on socket fds, and a TUN is not one, so they would
+	// change nothing.
 	endpoint, err := fdbased.New(&fdbased.Options{
 		FDs: []int{tunFD},
 		MTU: uint32(mtu),
+		GRO: true,
 	})
 	if err != nil {
 		netStack.Close()
@@ -83,6 +94,22 @@ func Start(tunFD int, mtu int) (*Session, error) {
 	})
 
 	return &Session{stack: netStack, binding: binding}, nil
+}
+
+// congestionControl is the algorithm for the client-facing TCP leg.
+//
+// gVisor defaults to Reno. CUBIC regrows its window faster after a loss, which
+// can help on a lossy Wi-Fi hop. The upstream leg uses the Android kernel's own
+// TCP and is unaffected by this choice.
+const congestionControl = "cubic"
+
+// tuneTCP applies the netstack TCP options that differ from gVisor defaults.
+//
+// A failure leaves gVisor's default in place rather than failing the session:
+// these options affect speed, not correctness.
+func tuneTCP(netStack *stack.Stack) {
+	option := tcpip.CongestionControlOption(congestionControl)
+	_ = netStack.SetTransportProtocolOption(tcp.ProtocolNumber, &option)
 }
 
 // SetNetwork pins every subsequent dial to a handle from

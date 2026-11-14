@@ -27,3 +27,6 @@ local.properties
 
 # Shizuku is a separate local Git checkout.
 /Shizuku/
+
+# Kotlin 2 compiler session and error files
+.kotlin/
