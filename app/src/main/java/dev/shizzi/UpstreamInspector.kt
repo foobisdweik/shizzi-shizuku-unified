@@ -32,16 +32,16 @@ class UpstreamInspector(private val deadlineMs: Long = DEFAULT_DEADLINE_MS) {
 
     private fun run(service: String): UpstreamObservation {
         val process = ProcessBuilder("dumpsys", service).start()
-        val drainPool = Executors.newFixedThreadPool(2)
-
-        val stdout = drainPool.submit<String> { process.inputStream.drain() }
-        val stderr = drainPool.submit<String> { process.errorStream.drain() }
+        val stdout = DRAIN_POOL.submit<String> { process.inputStream.drain() }
+        val stderr = DRAIN_POOL.submit<String> { process.errorStream.drain() }
 
         val didExit = process.waitFor(deadlineMs, TimeUnit.MILLISECONDS)
         if (!didExit) process.destroyForcibly()
 
         val output = collectOutput(stdout, stderr)
-        drainPool.shutdownNow()
+        // A killed process closes its pipes, so these only stop a stuck read.
+        stdout.cancel(true)
+        stderr.cancel(true)
 
         return UpstreamObservation(
             rawOutput = output,
@@ -75,6 +75,15 @@ class UpstreamInspector(private val deadlineMs: Long = DEFAULT_DEADLINE_MS) {
 
     companion object {
         const val DEFAULT_DEADLINE_MS = 3_000L
+
+        /**
+         * Shared by every call. A new pool for each call created two threads
+         * every few seconds for the whole session. Idle threads exit after
+         * 60 s, and daemon threads never keep the helper alive.
+         */
+        private val DRAIN_POOL = Executors.newCachedThreadPool { task ->
+            Thread(task, "dumpsys-drain").apply { isDaemon = true }
+        }
 
         private val UPSTREAM_HINTS = listOf(
             "current upstream interface(s):",

@@ -11,9 +11,16 @@ import java.util.concurrent.Executor
 /**
  * Calls [onChange] when the tethered interfaces change or a USB cable comes or
  * goes, so the session reacts at once instead of at its next scheduled check.
+ * Calls [onClients] with every client list Android reports. Android sends that
+ * list only to callers that hold NETWORK_SETTINGS, which the shell user does.
  * Either source may be unavailable; the scheduled check still covers it.
  */
-class TetheringEvents(private val context: Context, private val onChange: () -> Unit) {
+class TetheringEvents(
+    private val context: Context,
+    private val onChange: () -> Unit,
+    private val onClients: (List<TetheredClientInfo>) -> Unit = {},
+    private val listenForUsb: Boolean = true,
+) {
 
     private var callback: Any? = null
     private var receiver: BroadcastReceiver? = null
@@ -23,6 +30,7 @@ class TetheringEvents(private val context: Context, private val onChange: () -> 
             .onFailure { SessionLog.warn("tethering events unavailable, polling instead: ${it.message}") }
             .getOrNull()
 
+        if (!listenForUsb) return
         receiver = runCatching { registerUsbReceiver() }
             .onFailure { SessionLog.warn("usb events unavailable, polling instead: ${it.message}") }
             .getOrNull()
@@ -42,6 +50,7 @@ class TetheringEvents(private val context: Context, private val onChange: () -> 
         val proxy = Proxy.newProxyInstance(callbackClass.classLoader, arrayOf(callbackClass)) { self, method, args ->
             when (method.name) {
                 "onTetheredInterfacesChanged" -> onChange()
+                "onClientsChanged" -> onClients(clientsOf(args?.firstOrNull()))
                 "hashCode" -> return@newProxyInstance System.identityHashCode(self)
                 "equals" -> return@newProxyInstance self === args?.firstOrNull()
                 "toString" -> return@newProxyInstance "TetheringEvents"
@@ -88,7 +97,22 @@ class TetheringEvents(private val context: Context, private val onChange: () -> 
     }
 
     private companion object {
+        /** Reads TetheredClient, a system API, by reflection like the callback itself. */
+        fun clientsOf(clients: Any?): List<TetheredClientInfo> =
+            (clients as? Collection<*>).orEmpty().mapNotNull { client ->
+                runCatching {
+                    val type = client!!.javaClass
+                    TetheredClientInfo(
+                        macAddress = type.getMethod("getMacAddress").invoke(client).toString(),
+                        tetheringType = type.getMethod("getTetheringType").invoke(client) as Int,
+                    )
+                }.getOrNull()
+            }
+
         const val CALLBACK_CLASS = "android.net.TetheringManager\$TetheringEventCallback"
         const val USB_STATE_ACTION = "android.hardware.usb.action.USB_STATE"
     }
 }
+
+/** One device that Android reports as connected to a tethered downstream. */
+data class TetheredClientInfo(val macAddress: String, val tetheringType: Int)
