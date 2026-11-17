@@ -5,6 +5,22 @@ and [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-11-17
+
+Lowers background load during a session. See
+[the release notes](docs/releases/v0.6.1.md) for measurements.
+
+### Changed
+
+- The session notification updates at once when its title, device count, or
+  message changes. Traffic totals alone update at most every 10 seconds,
+  instead of every second.
+- Hotspot devices are counted from Android's tethering client list instead of
+  `dumpsys wifi` every 10 seconds. `dumpsys wifi` remains the fallback until
+  the first list arrives.
+- The notification channel is created once, when the service starts.
+- The helper reuses one thread pool to read `dumpsys` output.
+
 ## [0.5.0] - 2026-10-30
 
 Adds USB tethering, so a computer on a USB cable can share the same

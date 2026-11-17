@@ -6,7 +6,7 @@ Shizzi keeps its tethering interface and includes its own privileged helper (a s
 
 The helper serves Shizzi exclusively. Initial setup still requires Android's wireless debugging or an authorized computer. Settings → Protection and recovery exposes sixteen controls, including optional changes that affect the whole phone.
 
-See the [v0.6.0 release notes](docs/releases/v0.6.0.md) for every control and its default. See [standalone setup](docs/standalone-shizzi.md) for pairing and startup instructions.
+See the [v0.6.0 release notes](docs/releases/v0.6.0.md) for every control and its default, and the [v0.6.1 release notes](docs/releases/v0.6.1.md) for the latest changes. See [standalone setup](docs/standalone-shizzi.md) for pairing and startup instructions.
 
 ---
 
@@ -34,7 +34,7 @@ module it needs. See [compatibility](docs/android-compatibility.md).
 
 ## Install
 
-Download the [v0.6.0 APK](https://github.com/foobisdweik/shizzi-shizuku-unified/releases/download/v0.6.0/shizzi-unified-v0.6.0-debug.apk) from the [release page](https://github.com/foobisdweik/shizzi-shizuku-unified/releases/tag/v0.6.0). The APK uses the existing local debug signing key. A SHA-256 checksum file is included with the release.
+Download the [v0.6.1 APK](https://github.com/foobisdweik/shizzi-shizuku-unified/releases/download/v0.6.1/shizzi-unified-v0.6.1.apk) from the [release page](https://github.com/foobisdweik/shizzi-shizuku-unified/releases/tag/v0.6.1). It is signed with the same key as v0.6.0, so it installs over it. A SHA-256 checksum file is included with the release.
 
 To build it yourself, follow the instructions below. Install `app/build/outputs/apk/debug/app-debug.apk` through `adb install -r`.
 
