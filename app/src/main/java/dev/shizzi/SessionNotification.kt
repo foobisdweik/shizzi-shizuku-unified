@@ -11,8 +11,6 @@ import android.os.Build
 class SessionNotification(private val context: Context) {
 
     fun build(state: SessionUiState, isStopping: Boolean): Notification {
-        createChannel()
-
         val text = bodyFor(state, isStopping)
 
         return Notification.Builder(context, CHANNEL_ID)
@@ -26,6 +24,21 @@ class SessionNotification(private val context: Context) {
             .addAction(Notification.Action.Builder(null, "Stop all protection", PendingIntent.getService(context, 2,
                 Intent(context, SessionService::class.java).setAction(SessionService.ACTION_STOP_ALL), PendingIntent.FLAG_IMMUTABLE)).build())
             .build()
+    }
+
+    /** Everything the notification shows, to detect a real change. */
+    fun contentOf(state: SessionUiState, isStopping: Boolean): String =
+        titleFor(state, isStopping) + "\n" + bodyFor(state, isStopping)
+
+    /**
+     * The content without the traffic totals. A change here is posted at once.
+     * The totals change on every status poll, so they alone are posted less often.
+     */
+    fun keyOf(state: SessionUiState, isStopping: Boolean): String {
+        val showsTraffic = state.lastError.isEmpty() && state.status == UiStatus.CONNECTED &&
+            !state.isWaitingForUsb
+        val body = if (showsTraffic) deviceCount(state.clientCount) else bodyFor(state, isStopping)
+        return titleFor(state, isStopping) + "\n" + body
     }
 
     private fun titleFor(state: SessionUiState, isStopping: Boolean): String =
@@ -97,7 +110,8 @@ class SessionNotification(private val context: Context) {
         ),
     ).build()
 
-    private fun createChannel() {
+    /** Run once when the service is created. The channel then exists for every post. */
+    fun createChannel() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
 
         val channel = NotificationChannel(
@@ -121,5 +135,39 @@ class SessionNotification(private val context: Context) {
         const val UP_ARROW = "\u2191"
 
         const val USB_GRACE_MINUTES = UsbReconnect.GIVE_UP_AFTER_MS / 60_000
+    }
+}
+
+/**
+ * Decides whether a notification update is worth posting. Each post makes
+ * System UI rebuild the notification row and the app's badge, which cost about
+ * a third of a CPU core when Shizzi posted once per second.
+ */
+class NotificationThrottle(private val trafficIntervalMs: Long = TRAFFIC_INTERVAL_MS) {
+
+    private var lastKey: String? = null
+    private var lastContent: String? = null
+    private var lastPostedAt = 0L
+
+    /** True when the update must be posted. A true answer counts as posted. */
+    fun shouldPost(key: String, content: String, now: Long): Boolean {
+        val post = when {
+            key != lastKey -> true
+            content == lastContent -> false
+            else -> now - lastPostedAt >= trafficIntervalMs
+        }
+        if (post) posted(key, content, now)
+        return post
+    }
+
+    /** Records a post made without asking, such as the one startForeground makes. */
+    fun posted(key: String, content: String, now: Long) {
+        lastKey = key
+        lastContent = content
+        lastPostedAt = now
+    }
+
+    companion object {
+        const val TRAFFIC_INTERVAL_MS = 10_000L
     }
 }

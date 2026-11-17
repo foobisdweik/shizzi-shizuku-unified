@@ -38,6 +38,7 @@ class SessionService : Service() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val controller = TetherClient()
     private val notification by lazy { SessionNotification(this) }
+    private val notificationThrottle = NotificationThrottle()
     private val statusPoller = SessionStatusPoller(scope, controller)
 
     private val internalState get() = sessionState
@@ -74,6 +75,7 @@ class SessionService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        notification.createChannel()
         controller.onSessionLost = { scope.launch { handleSessionLost() } }
         liveService = this
         scope.launch { HelperBridge.service.collect { protectionEvents.trySend(Unit) } }
@@ -109,7 +111,10 @@ class SessionService : Service() {
         }
         protectionEvents.trySend(Unit)
 
-        startForeground(NOTIFICATION_ID, notification.build(internalState.value, isStopping))
+        val shown = internalState.value
+        startForeground(NOTIFICATION_ID, notification.build(shown, isStopping))
+        notificationThrottle.posted(notification.keyOf(shown, isStopping),
+            notification.contentOf(shown, isStopping), android.os.SystemClock.elapsedRealtime())
         if (action != ACTION_STOP_ALL && protectionJob?.isActive != true) protectionJob = scope.launch { protectLoop() }
         return if (action == ACTION_STOP_ALL) START_NOT_STICKY else START_STICKY
     }
@@ -161,7 +166,7 @@ class SessionService : Service() {
                         HelperRuntime.status.value = "Recovery reached its retry limit. Open helper setup to retry."
                     }
                 }
-                notificationManager().notify(NOTIFICATION_ID, notification.build(internalState.value, isStopping))
+                publishState()
                 withTimeoutOrNull(p.healthIntervalSeconds * 1_000L) { protectionEvents.receive() }
             } catch (e: Exception) {
                 RecoveryPolicy.checkCancellation()
@@ -331,11 +336,15 @@ class SessionService : Service() {
     }
 
     private fun publishState() {
-
-        notificationManager().notify(
-            NOTIFICATION_ID,
-            notification.build(internalState.value, isStopping),
+        val shown = internalState.value
+        val isNew = notificationThrottle.shouldPost(
+            notification.keyOf(shown, isStopping),
+            notification.contentOf(shown, isStopping),
+            android.os.SystemClock.elapsedRealtime(),
         )
+        if (!isNew) return
+
+        notificationManager().notify(NOTIFICATION_ID, notification.build(shown, isStopping))
     }
 
     private fun notificationManager(): NotificationManager =
