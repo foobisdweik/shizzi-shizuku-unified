@@ -42,10 +42,29 @@ class DownstreamInspector(private val inspector: UpstreamInspector = UpstreamIns
 
     private var loggedCount = 0
 
+    /**
+     * The latest client list from the tethering callback, or null before the
+     * first report. While it is set, counting needs no `dumpsys wifi` (a report
+     * of about 700 KB that takes about 0.5 s to produce).
+     */
+    @Volatile
+    private var liveClients: List<TetheredClientInfo>? = null
+
+    fun updateClients(clients: List<TetheredClientInfo>) {
+        liveClients = clients
+    }
+
     fun findTetheredDownstream(types: Collection<TetheringType>): DownstreamReading =
         readDownstream(inspector.observe(), types)
 
     fun countDevices(types: Collection<TetheringType> = listOf(TetheringType.WIFI)): Int {
+        liveClients?.let { clients ->
+            val codes = types.map(TetheringType::code)
+            cachedCount = clients.filter { it.tetheringType in codes }.distinctBy { it.macAddress }.size
+            logCountChange(cachedCount)
+            return cachedCount
+        }
+
         val now = System.currentTimeMillis()
         if (now - lastReadAt < REFRESH_INTERVAL_MS) return cachedCount
 

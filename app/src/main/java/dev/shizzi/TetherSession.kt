@@ -135,8 +135,15 @@ class TetherSession(private val context: Context) {
         watchdog = guard
         guard.start()
 
-        if (usbTethering == UsbTethering.NEVER) return
-        events = TetheringEvents(context, guard::wake).also(TetheringEvents::register)
+        // Always registered, because the client list replaces a dumpsys every
+        // 10 s. Interface changes wake the watchdog only when USB is in use.
+        val followsUsb = usbTethering != UsbTethering.NEVER
+        events = TetheringEvents(
+            context,
+            onChange = { if (followsUsb) guard.wake() },
+            onClients = downstream::updateClients,
+            listenForUsb = followsUsb,
+        ).also(TetheringEvents::register)
     }
 
     private fun endFromWatchdog(end: WatchdogEnd) {
